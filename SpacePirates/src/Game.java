@@ -1,0 +1,629 @@
+import equipment.*;
+import food.*;
+import scenarios.*;
+import spaceships.*;
+import creatures.*;
+import leaderboards.*;
+import timer.*;
+
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.Scanner;
+import java.util.Iterator;
+
+/**
+ * class that runs the game for Space Pirates
+ */
+public class Game {
+	Scanner in = new Scanner(System.in);
+	Random rand = new Random();
+	Leaderboard leaderboard;
+	String playerName;
+	ScenarioRunner scenario;
+	Merchant merchant;
+	Spaceship myShip;
+	GameTimer distanceTimer = new GameTimer();
+	GameTimer gameTimer = new GameTimer();
+	private int distanceTraveled;
+	private int gameScore;
+
+	/**
+	 * constructor to set new leaderboard, new scenario, new merchant prints the
+	 * name of the player and starts the game
+	 */
+	public Game() {
+		leaderboard = new Leaderboard();
+		scenario = new ScenarioRunner();
+		merchant = new Merchant();
+		System.out.println("Enter your name: ");
+		playerName = in.next();
+		gameSetup();
+	}
+
+	/**
+	 * method to determine distance traveled throughout the game
+	 * 
+	 * @return distance traveled
+	 */
+	private double getDistanceTraveled() {
+		double seconds = distanceTimer.getElapsedTime() / 1000;
+		double minutes = seconds / 60;
+		double length = minutes * 200000000;
+		double scale = Math.pow(10, 3);
+		length = Math.round(length * scale) / scale;
+		return length;
+	}
+
+	/**
+	 * method to provide user manual for the game
+	 */
+	private void gameSetup() {
+		// single method to set up beginning
+		System.out.println(
+				"\nSelect what you'd like to do:\n" + "1. How to play\n" + "2. Play the game\n" + "3. View credits");
+
+		int choice = 999;
+		while (choice != 1 && choice != 2 && choice != 3) {
+			System.out.println("\nPlease enter a number from 1 to 3");
+			while (!in.hasNextInt()) {
+				in.next();
+				System.out.println("\nPlease enter a number from 1 to 3");
+			}
+			choice = in.nextInt();
+		}
+
+		if (choice == 1) {
+			System.out.println("\nChoose your crew members from two species, gomples or humans, and give them names.\n"
+					+ "Next, choose food items wisely to keep your crew members alive.\n"
+					+ "Then, survive different randomized scenarios.\n"
+					+ "If you get lucky, you'll come across a merchant's ship, buy wisely.\n"
+					+ "Now, if its possible you'll have the option to upgrade your ship.\n"
+					+ "Make it 4 billion miles to Pluto and you'll win.\n");
+			gameSetup();
+		} else if (choice == 2) {
+			loadSpaceship();
+		} else if (choice == 3) {
+			String str = new String("\nCreated by:\nMarcos Garcia\n" + "Caitlyn Chau\nEdward Lee\nTrung Huynh\n"
+					+ "Shaan Gill\nQuang Huynh\n");
+			System.out.println(str);
+			gameSetup();
+		}
+	}
+
+	
+	/**
+	 * Tester method to create creatures
+	 */
+	
+	private ArrayList<Creature> createCreaturesTest() {
+		ArrayList<Creature> members = new ArrayList<Creature>(5);
+		Creature member1 = new Human("a");
+		Creature member2 = new Human("b");
+		Creature member3 = new Human("c");
+		Creature member4 = new Human("d");
+		Creature member5 = new Human("e");
+		members.add(member1);
+		members.add(member2);
+		members.add(member3);
+		members.add(member4);
+		members.add(member5);
+		return members;
+	}
+
+	/**
+	 * Tester method to choose items
+	 * 
+	 * @return list of foods
+	 */
+	private ArrayList<Food> chooseItemsTest() {
+		ArrayList<Food> shipFood = new ArrayList<Food>(20);
+		for (int i = 0; i < 4; i++) {
+			shipFood.add(new GranolaBar());
+		}
+		for (int i = 0; i < 8; i++) {
+			shipFood.add(new AlienMeat());
+		}
+		for (int i = 0; i < 8; i++) {
+			shipFood.add(new PickleJuiceJar());
+		}
+		return shipFood;
+
+	}
+
+	/**
+	 * method for the user to view the main menu to check for distance traveled,
+	 * ship's condition, food inventory, status of crew members
+	 */
+	public void mainMenu() {
+		System.out.println("\nSelect what you would like to do: \n" 
+				+ "1. Distance to Pluto\n"
+				+ "2. Check ship's condition\n" 
+				+ "3. Check food inventory\n" 
+				+ "4. View crew members\n" 
+				+ "5. Fly\n");
+		int choice = 999;
+		while (choice != 1 && choice != 2 && choice != 3 && choice != 4 && choice != 5) {
+			System.out.println("Please enter a number from 1 to 5");
+			while (!in.hasNextInt()) {
+				in.next();
+				System.out.println("Please enter a number from 1 to 5");
+			}
+			choice = in.nextInt();
+		}
+		if (choice == 1) {
+			System.out.println("Distance traveled: " + getDistanceTraveled());
+			System.out.println("Distance left: not finished yet"); // help
+			System.out.println();
+			mainMenu();
+		} else if (choice == 2) {
+			System.out.println();
+			System.out.println("Ship conditions:");
+			// parts in use
+			System.out.printf("%-25s", "Equipment:");
+			System.out.printf("%-15s", "  Health Bar:");
+			System.out.println();
+			for (int i = 0; i < 6; i++) {
+				System.out.printf("%-25s", (i + 1) + ") " + myShip.getPartsInUse()[i].toString());
+				System.out.printf("%-15s", "  " + myShip.getPartsInUse()[i].getHealthBar() + "/"
+						+ myShip.getPartsInUse()[i].getMaxHealth());
+				System.out.println();
+			}
+			System.out.println("\nYour raid success rate: " + myShip.getSuccessRate());
+			System.out.println("\nSpare parts: ");
+			if (myShip.getSpareEquipment().size() == 0) {
+				System.out.println("(You have no spares and you are sad.)");
+			} else {
+				System.out.println("Barriers- " + myShip.getBarrierCount());
+				System.out.println("Cannons- " + myShip.getCannonCount());
+				System.out.println("FulstarPlate - " + myShip.getFulstarPlateCount());
+				System.out.println("Hyperdrive - " + myShip.getHyperdriveCount());
+				System.out.println("Lasers - " + myShip.getLaserCount());
+				System.out.println("PowerFluxCapacitators - " + myShip.getPowerFluxCapacitatorCount());
+				System.out.println();
+			}
+			if (myShip.isDamaged() && myShip.getSpareEquipment().size() > 0) {
+				myShip.fixEquipment();
+			}
+			mainMenu();
+		} else if (choice == 3) {
+			System.out.println();
+			System.out.printf("%-25s", "Food:");
+			System.out.printf("%-15s", "Quantity:");
+			System.out.println();
+			int granola = 0;
+			int alienMeat = 0;
+			int pickle = 0;
+			for (int i = 0; i < myShip.getFoodInv().size(); i++) {
+				if (myShip.getFoodInv().get(i).toString().equals("alien meat")) {
+					alienMeat++;
+				} else if (myShip.getFoodInv().get(i).toString().equals("granola bar")) {
+					granola++;
+				} else if (myShip.getFoodInv().get(i).toString().equals("pickle juice jar")) {
+					pickle++;
+				}
+			}
+			System.out.printf("%-25s%-25s", "Granola bars", granola);
+			System.out.println();
+			System.out.printf("%-25s%-25s", "Alien meat", alienMeat);
+			System.out.println();
+			System.out.printf("%-25s%-25s", "Pickle juice jar", pickle);
+			System.out.println("\n");
+			mainMenu();
+		} else if (choice == 4) {
+			System.out.println();
+			System.out.println("Crew Members: ");
+			ArrayList<String> names = new ArrayList<String>();
+			for (Creature c : myShip.getCrewMembers()){
+				names.add(c.getMyName());
+			}
+			Iterator iter = names.iterator();
+			while (iter.hasNext()){
+				System.out.print(iter.next() + " ");
+			}
+			
+			System.out.println();
+			mainMenu();
+		} else if (choice == 5) {
+			System.out.println("\nWe're going on a trip in our favorite rocket ship!\n");
+		}
+	}
+
+	/**
+	 * method to create the creatures needed for the ship crew
+	 */
+	private ArrayList<Creature> createCreatures() {
+		ArrayList<Creature> members = new ArrayList<Creature>();
+		for (int i = 0; i < 5; i++) {
+			System.out.println("\nWhat species is member " + (i + 1) + "?");
+			String species = in.next();
+			species = species.toLowerCase();
+			while (!species.equals("gomple") && !(species.equals("human"))) {
+				System.out.println("\nEnter 'human' or 'gomple'. What species is member " + (i + 1) + "?");
+				species = in.next();
+				species = species.toLowerCase();
+			}
+			if (species.equalsIgnoreCase("gomple")) {
+				if (i == 0) {
+					System.out.println("\nWhat is this Gomple's name?");
+					Creature member1 = new Gomple(in.next());
+					members.add(member1);
+				}
+				if (i == 1) {
+					System.out.println("\nWhat is this Gomple's name?");
+					Creature member2 = new Gomple(in.next());
+					members.add(member2);
+				}
+				if (i == 2) {
+					System.out.println("\nWhat is this Gomple's name?");
+					Creature member3 = new Gomple(in.next());
+					members.add(member3);
+				}
+				if (i == 3) {
+					System.out.println("\nWhat is this Gomple's name?");
+					Creature member4 = new Gomple(in.next());
+					members.add(member4);
+				}
+				if (i == 4) {
+					System.out.println("\nWhat is this Gomple's name?");
+					Creature member5 = new Gomple(in.next());
+					members.add(member5);
+				}
+			}
+			if (species.equalsIgnoreCase("human")) {
+				if (i == 0) {
+					System.out.println("\nWhat is this Human's name?");
+					Creature member1 = new Human(in.next());
+					members.add(member1);
+				}
+				if (i == 1) {
+					System.out.println("\nWhat is this Human's name?");
+					Creature member2 = new Human(in.next());
+					members.add(member2);
+				}
+				if (i == 2) {
+					System.out.println("\nWhat is this Human's name?");
+					Creature member3 = new Human(in.next());
+					members.add(member3);
+				}
+				if (i == 3) {
+					System.out.println("\nWhat is this Human's name?");
+					Creature member4 = new Human(in.next());
+					members.add(member4);
+				}
+				if (i == 4) {
+					System.out.println("\nWhat is this Human's name?");
+					Creature member5 = new Human(in.next());
+					members.add(member5);
+				}
+			}
+		}
+		return members;
+	}
+
+	/**
+	 * method to create the spaceship with crew members
+	 */
+	public void loadSpaceship() {
+		myShip = new LevelOne(createCreatures(), chooseItemsTest());
+		System.out.println("\nWelcome to Space Pirates, " + playerName
+				+ "! Your Level 1 ship is equipped with a barrier, cannon, \nfulstar plate, hyperdrive, "
+				+ "laser, and power flux capacitator.\n");
+	}
+
+	/**
+	 * method to buy food
+	 * 
+	 * @return list of food in the inventory
+	 */
+	private ArrayList<Food> chooseItems() {
+		ArrayList<Food> shipFood = new ArrayList<Food>();
+		System.out.println("\nYour options are: Granola bar, Alien meat, Pickle juice jar\n");
+		int limit = 20;
+		int granola, alienMeat, pickle;
+		do {
+			System.out.println("\nYou must bring at most 20 food items with you.\n");
+			System.out.print("\nHow many granola bars?\n");
+			while (!in.hasNextInt()) {
+				in.next();
+				System.out.println("\nPlease enter a number");
+			}
+			granola = in.nextInt();
+			System.out.print("\nHow many alien meat?\n");
+			while (!in.hasNextInt()) {
+				in.next();
+				System.out.println("\nPlease enter a number");
+			}
+			alienMeat = in.nextInt();
+			System.out.print("\nHow many pickle juice jars?\n");
+			while (!in.hasNextInt()) {
+				in.next();
+				System.out.println("\nPlease enter a number");
+			}
+			pickle = in.nextInt();
+		} while (pickle + alienMeat + granola > limit);
+		for (int i = 0; i < granola; i++) {
+			shipFood.add(new GranolaBar());
+		}
+		for (int i = 0; i < alienMeat; i++) {
+			shipFood.add(new AlienMeat());
+		}
+		for (int i = 0; i < pickle; i++) {
+			shipFood.add(new PickleJuiceJar());
+		}
+		return shipFood;
+	}
+
+	/**
+	 * method to determine if the the player has successfully traveled
+	 * 4000000000 and completed the game
+	 * 
+	 * @return true if completed, false otherwise
+	 */
+	private boolean gameWon() {
+		if (getDistanceTraveled() >= 4000000000.0) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * method to determine if the player failed to finish the game when one or
+	 * more of the following scenarios are true: the ship either ran out of
+	 * food, has no crew members left, has a completely broken ship
+	 * 
+	 * @return true if the following scenarios are true, false otherwise
+	 */
+	private boolean gameOver() {
+		if (!gameWon()) {
+			if (myShip.getFoodInv().size() == 0) {
+				System.out.println("\nYour food inventory is burned out, this\n" + "is the end! :(\n");
+				return true;
+			}
+			if (myShip.getCrewMembers().size() == 0) {
+				System.out.println("\nAll your crew members have died, this\n" + "is the end! You suck!\n");
+				return true;
+			}
+			if (myShip.isBroken()) {
+				System.out.println("\nYour ship broke, sucks to suck.\n");
+				return true;
+			}
+			return false;
+		} else {
+			System.out.println("\nYay you've won and wasted time!!!\n" + "\nGo outside!\n");
+			return true;
+		}
+	}
+
+	/**
+	 * method to pause the game
+	 * 
+	 * @param lengthSeconds
+	 *            - wait time
+	 */
+	private void wait(int lengthSeconds) {
+		int seconds = lengthSeconds * 1000;
+		try {
+			Thread.sleep(seconds);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * method to upgrade spaceship
+	 */
+	public void upgrade() {
+		if (myShip.canUpgrade() && myShip instanceof LevelOne) {
+			System.out.println("\nYou can upgrade your spaceship, would you like to?\n");
+			if (in.next().equalsIgnoreCase("yes")) {
+				ArrayList<Creature> crewHold = this.myShip.getCrewMembers();
+				ArrayList<Food> foodHold = this.myShip.getFoodInv();
+				wait(1);
+				myShip = new LevelTwo(crewHold, foodHold);
+				System.out.println("\nYou now own a level two spaceship\n");
+			}
+		}
+		if (myShip.canUpgrade() && myShip instanceof LevelTwo) {
+			System.out.println("\nYou can upgrade your spaceship, would you like to?\n");
+			if (in.next().equalsIgnoreCase("yes")) {
+				ArrayList<Creature> crewHold = this.myShip.getCrewMembers();
+				ArrayList<Food> foodHold = this.myShip.getFoodInv();
+				myShip = new LevelThree(crewHold, foodHold);
+				wait(1);
+				System.out.println("\nYou now own a level three spaceship\n");
+			}
+		}
+	}
+
+	/**
+	 * tester method to upgrade equipments
+	 */
+	public void upgradeTest() {
+		for (int i = 0; i < 5; i++) {
+			myShip.addSpareEquipment(new Barrier());
+			myShip.addSpareEquipment(new Cannon());
+			myShip.addSpareEquipment(new FulstarPlate());
+			myShip.addSpareEquipment(new Hyperdrive());
+			myShip.addSpareEquipment(new Laser());
+			myShip.addSpareEquipment(new PowerFluxCapacitator());
+		}
+		for (int i = 0; i < 2; i++) {
+			upgrade();
+			mainMenu();
+		}
+	}
+
+	/**
+	 * method to breed crew members to create new creatures
+	 */
+	public void breed() {
+		if (myShip.getCrewMembers().size() < 5) {
+			int chance = rand.nextInt(100) + 1;
+			if (myShip.getLevel() == 1) {
+				if (chance > 0 && chance < 16) {
+					int index1 = rand.nextInt(myShip.getCrewMembers().size());
+					int index2 = rand.nextInt(myShip.getCrewMembers().size());
+					while (index1 == index2) {
+						index2 = rand.nextInt(myShip.getCrewMembers().size());
+					}
+					System.out.println("\nTwo members of your crew " + myShip.getCrewMembers().get(index1).getMyName()
+							+ " and " + myShip.getCrewMembers().get(index2).getMyName() + " are having an affair, will"
+							+ " you allow them to have a child? \n" + "(Doing so will exhaust 5 spaces worth of food)");
+					String choice = in.next();
+					while (!choice.equalsIgnoreCase("yes") && !choice.equals("no")) {
+						System.out.println("Enter yes or no.");
+						choice = in.next();
+					}
+					if (choice.equalsIgnoreCase("yes")) {
+						if (enoughFood()) {
+							System.out.println("\nWhat will the new creature's name be?");
+							String name = in.next();
+							myShip.getCrewMembers().add(myShip.getCrewMembers().get(index1)
+									.breed(myShip.getCrewMembers().get(index2), name));
+							System.out.println("\n" + name + " the "
+									+ myShip.getCrewMembers().get(myShip.getCrewMembers().size() - 1).toString()
+									+ " has been born!");
+						} else {
+							System.out.println("\nYou do not have enough resources to reproduce.");
+						}
+					} else {
+						System.out.println("\nYou heartless soul...");
+					}
+				}
+			}
+			if (myShip.getLevel() == 2) {
+				if (chance > 0 && chance < 21) {
+					int index1 = rand.nextInt(myShip.getCrewMembers().size());
+					int index2 = rand.nextInt(myShip.getCrewMembers().size());
+					while (index1 == index2) {
+						index2 = rand.nextInt(myShip.getCrewMembers().size());
+					}
+					System.out.println("\nTwo members of your crew" + myShip.getCrewMembers().get(index1).getMyName()
+							+ "and" + myShip.getCrewMembers().get(index2).getMyName() + "\nare having an affair, will"
+							+ " you allow them to have a child? " + "(Doing so will exhaust 5 spaces worth of food)");
+					String choice = in.next();
+					while (!choice.equalsIgnoreCase("yes") && !choice.equals("no")) {
+						System.out.println("Enter yes or no.");
+						choice = in.next();
+					}
+					if (choice.equalsIgnoreCase("yes")) {
+						if (enoughFood()) {
+							System.out.println("\nWhat will the new creature's name be?");
+							String name = in.next();
+							myShip.getCrewMembers().add(myShip.getCrewMembers().get(index1)
+									.breed(myShip.getCrewMembers().get(index2), name));
+							System.out.println("\n" + name + " the "
+									+ myShip.getCrewMembers().get(myShip.getCrewMembers().size() - 1).toString()
+									+ " has been born!");
+						} else {
+							System.out.println("\nYou do not have enough resources to reproduce.");
+						}
+					} else {
+						System.out.println("\nYou heartless soul...");
+					}
+				}
+			}
+			if (myShip.getLevel() == 3) {
+				if (chance > 0 && chance < 26) {
+					int index1 = rand.nextInt(myShip.getCrewMembers().size());
+					int index2 = rand.nextInt(myShip.getCrewMembers().size());
+					while (index1 == index2) {
+						index2 = rand.nextInt(myShip.getCrewMembers().size());
+					}
+					System.out.println("\nTwo members of your crew" + myShip.getCrewMembers().get(index1).getMyName()
+							+ "and" + myShip.getCrewMembers().get(index2).getMyName() + "\nare having an affair, will"
+							+ " you allow them to have a child? " + "(Doing so will exhaust 5 spaces worth of food)");
+					String choice = in.next();
+					while (!choice.equalsIgnoreCase("yes") && !choice.equals("no")) {
+						System.out.println("Enter yes or no.");
+						choice = in.next();
+					}
+					if (choice.equalsIgnoreCase("yes")) {
+						if (enoughFood()) {
+							System.out.println("\nWhat will the new creature's name be?");
+							String name = in.next();
+							myShip.getCrewMembers().add(myShip.getCrewMembers().get(index1)
+									.breed(myShip.getCrewMembers().get(index2), name));
+							System.out.println("\n" + name + " the "
+									+ myShip.getCrewMembers().get(myShip.getCrewMembers().size() - 1).toString()
+									+ " has been born!");
+						} else {
+							System.out.println("\nYou do not have enough resources to reproduce.");
+						}
+					} else {
+						System.out.println("\nYou heartless soul...");
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * method to determine if food inventory is over its capacity
+	 * 
+	 * @return true if over the capacity, false otherwise
+	 */
+	private boolean enoughFood() {
+		boolean enoughFood = false;
+		if (myShip.getFoodInv().size() > 5) {
+			enoughFood = true;
+			for (int i = 0; i < 5; i++) {
+				myShip.getFoodInv().remove(i);
+			}
+		}
+		return enoughFood;
+	}
+
+	/**
+	 * method to run all methods to start the game
+	 */
+	public void playGame() {
+		// here we'll run all methods
+		mainMenu();
+		gameTimer.start();
+		distanceTimer.start();
+		while (!gameOver()) {
+			if (getDistanceTraveled() != 0.0) {
+				System.out.println("\nYou've traveled " + getDistanceTraveled() + " miles!\n");
+			}
+			wait(1);
+			distanceTimer.pause();
+			if (scenario.runScenario(myShip) instanceof BlackHole) {
+				System.out.println("\nThere's no light, no life, no hope, you're in a blackhole, bye.\n");
+				break;
+			}
+			if (myShip.getCrewMembers().size() < 1) {
+				System.out.println("\nYou can't continue without crew members, soooo... Bye!\n");
+				break;
+			}
+			distanceTimer.resume();
+			wait(1);
+			merchant.buy(myShip);
+			upgrade();
+			wait(1);
+			breed();
+			wait(1);
+			mainMenu();
+			wait(1);
+		}
+		distanceTimer.pause();
+		gameTimer.pause();
+		leaderboard.addToList();
+		if (gameWon()) {
+			int score = (int) gameTimer.getElapsedTime() / 1000;
+			Player currentPlayer = new Player(playerName, score);
+			System.out.println("Your score -> " + score);
+			currentPlayer.insertScore(playerName, score);
+			System.out.println("Your top scores -> " + currentPlayer.getTopFive(playerName));
+		} else {
+			System.out.println("Your score -> DNF");
+			int score = 999999999;
+			Player currentPlayer = new Player(playerName, score);
+			currentPlayer.insertScore(playerName, score);
+			System.out.println("Your top scores -> " + currentPlayer.getTopFive(playerName));
+		}
+		leaderboard.printScores();
+	}
+
+}
